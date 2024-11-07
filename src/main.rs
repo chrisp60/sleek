@@ -1,7 +1,9 @@
-use std::fmt::Write as FmtWrite;
-use std::io::{Read, Write};
-use std::process;
-use std::{fs, io};
+use std::{
+    fmt::Write as FmtWrite,
+    fs, io,
+    io::{Read, Write},
+    process,
+};
 
 use clap::{crate_version, Parser};
 use glob::glob;
@@ -12,7 +14,7 @@ fn main() {
     let options = Options::parse();
     let format_options = FormatOptions {
         indent: Indent::Spaces(options.indent_spaces),
-        uppercase: options.uppercase.unwrap_or(true),
+        uppercase: options.uppercase,
         lines_between_queries: options.lines_between_queries,
     };
 
@@ -22,15 +24,7 @@ fn main() {
             true => {
                 let mut input = String::new();
                 io::stdin().read_to_string(&mut input)?;
-
                 let formatted = format(&input, &QueryParams::default(), format_options);
-                if options.check {
-                    if input != formatted {
-                        return Err(Error::Check);
-                    }
-                    return Ok(());
-                }
-
                 io::stdout().write_all(formatted.as_bytes())?;
             }
             false => {
@@ -44,17 +38,9 @@ fn main() {
 
                         let mut formatted = format(&input, &QueryParams::default(), format_options);
 
-                        if options.trailing_newline && !formatted.ends_with('\n') {
+                        if options.omit_newline && !formatted.ends_with('\n') {
                             writeln!(&mut formatted)?;
                         }
-
-                        if options.check {
-                            if input != formatted {
-                                return Err(Error::Check);
-                            }
-                            return Ok(());
-                        }
-
                         fs::File::create(&path)?.write_all(formatted.as_bytes())?;
                     }
                 }
@@ -80,8 +66,6 @@ enum Error {
     Glob(#[from] glob::GlobError),
     #[error("Failed to read glob pattern: {0}")]
     Patter(#[from] glob::PatternError),
-    #[error("Input is not formatted correctly. Run without --check to format the input.")]
-    Check,
     #[error("Failed to append a trailing newline to the formatted SQL.")]
     Format(#[from] std::fmt::Error),
 }
@@ -92,19 +76,16 @@ struct Options {
     /// File path(s) to format, supports glob patterns.
     /// If no file paths are provided, reads from stdin.
     file_paths: Vec<String>,
-    /// Check if the code is already formatted
-    #[clap(short, long)]
-    check: bool,
     /// Set the number of spaces to use for indentation
     #[clap(short, long, default_value = "4")]
     indent_spaces: u8,
     /// Change reserved keywords to ALL CAPS
-    #[clap(short = 'U', long)]
-    uppercase: Option<bool>,
+    #[clap(long, default_value = "false")]
+    uppercase: bool,
     /// Set the number of line breaks after a query
     #[clap(short, long, default_value = "2")]
     lines_between_queries: u8,
     /// Enforce a tailing newline at the end of the file
     #[clap(short = 'n', long, default_value = "false")]
-    trailing_newline: bool,
+    omit_newline: bool,
 }

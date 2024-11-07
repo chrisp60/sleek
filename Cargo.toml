@@ -1,5 +1,5 @@
 [package]
-name = "sleek"
+name = "sleeky"
 version = "0.3.0"
 edition = "2021"
 description = "Sleek is a CLI tool for formatting SQL files."
