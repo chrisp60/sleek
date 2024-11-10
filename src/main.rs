@@ -12,10 +12,17 @@ use thiserror::Error;
 
 fn main() {
     let options = Options::parse();
+    let Options {
+        indent_spaces,
+        uppercase,
+        lines_between_queries,
+        ..
+    } = options;
     let format_options = FormatOptions {
-        indent: Indent::Spaces(options.indent_spaces),
-        uppercase: options.uppercase,
-        lines_between_queries: options.lines_between_queries,
+        indent: Indent::Spaces(indent_spaces),
+        uppercase: Some(uppercase),
+        lines_between_queries,
+        ..Default::default()
     };
 
     let result = || -> Result<(), Error> {
@@ -24,7 +31,7 @@ fn main() {
             true => {
                 let mut input = String::new();
                 io::stdin().read_to_string(&mut input)?;
-                let formatted = format(&input, &QueryParams::default(), format_options);
+                let formatted = format(&input, &QueryParams::default(), &format_options);
                 io::stdout().write_all(formatted.as_bytes())?;
             }
             false => {
@@ -36,7 +43,8 @@ fn main() {
                         let mut input = String::new();
                         fs::File::open(&path)?.read_to_string(&mut input)?;
 
-                        let mut formatted = format(&input, &QueryParams::default(), format_options);
+                        let mut formatted =
+                            format(&input, &QueryParams::default(), &format_options);
 
                         if options.omit_newline && !formatted.ends_with('\n') {
                             writeln!(&mut formatted)?;
